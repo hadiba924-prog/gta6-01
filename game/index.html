@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Solmar Bay — Sunset Streets</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #0b1220; font-family: 'Segoe UI', Arial, sans-serif; }
+  #app { position: fixed; inset: 0; }
+  canvas.game { display: block; }
+  .overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #fff; text-align: center; z-index: 10; }
+  .hidden { display: none !important; }
+  /* ---------- start screen ---------- */
+  #menu { background: linear-gradient(180deg, rgba(8,18,38,.25) 0%, rgba(8,18,38,.55) 55%, rgba(8,18,38,.92) 100%); }
+  #menu h1 { font-size: 84px; letter-spacing: 6px; font-weight: 900; color: #ffd23e; text-shadow: 0 4px 0 #e2571e, 0 10px 28px rgba(0,0,0,.7); font-style: italic; }
+  #menu h2 { font-size: 26px; letter-spacing: 10px; color: #7fe7ff; margin-top: -8px; text-shadow: 0 2px 10px rgba(0,0,0,.8); }
+  #menu .story { max-width: 560px; margin: 22px 0 6px; font-size: 16px; line-height: 1.55; color: #eaf2ff; text-shadow: 0 1px 6px rgba(0,0,0,.9); }
+  .btn { cursor: pointer; border: 0; border-radius: 8px; padding: 14px 42px; font-size: 20px; font-weight: 800; letter-spacing: 2px; color: #1a1206; background: linear-gradient(180deg, #ffe066, #ffb52e); box-shadow: 0 4px 0 #b96a00, 0 8px 22px rgba(0,0,0,.5); margin: 8px; }
+  .btn:hover { filter: brightness(1.08); }
+  .btn.ghost { background: rgba(255,255,255,.14); color: #fff; box-shadow: none; border: 2px solid rgba(255,255,255,.5); font-size: 16px; padding: 10px 28px; }
+  #menu .controls { margin-top: 18px; font-size: 13px; color: #cfe3ff; line-height: 1.8; background: rgba(0,0,0,.35); padding: 10px 22px; border-radius: 10px; }
+  #menu .controls b { color: #ffd23e; }
+  /* ---------- HUD ---------- */
+  #hud { position: absolute; inset: 0; pointer-events: none; z-index: 5; color: #fff; }
+  #topleft { position: absolute; top: 14px; left: 14px; }
+  .bar { width: 220px; height: 16px; background: rgba(0,0,0,.55); border: 2px solid rgba(255,255,255,.65); border-radius: 8px; overflow: hidden; }
+  .bar > div { height: 100%; background: linear-gradient(90deg, #37e08b, #1db954); width: 100%; transition: width .2s; }
+  #cash { font-size: 26px; font-weight: 900; color: #7dff9b; text-shadow: 0 2px 6px #000; margin-top: 6px; }
+  #rank { font-size: 14px; font-weight: 700; letter-spacing: 2px; color: #ffd23e; text-shadow: 0 2px 4px #000; }
+  #stars { position: absolute; top: 12px; right: 16px; font-size: 34px; letter-spacing: 4px; color: #3aa7ff; text-shadow: 0 0 12px rgba(58,167,255,.9), 0 2px 4px #000; }
+  #stars .lit { color: #ffd23e; text-shadow: 0 0 14px rgba(255,210,62,.95), 0 2px 4px #000; }
+  #objective { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); max-width: 560px; text-align: center; }
+  #objTitle { font-size: 20px; font-weight: 900; letter-spacing: 1px; color: #ffd23e; text-shadow: 0 2px 6px #000; }
+  #objText { font-size: 15px; color: #fff; text-shadow: 0 2px 5px #000; margin-top: 2px; }
+  #objDist { font-size: 13px; color: #9fe8ff; text-shadow: 0 2px 4px #000; }
+  #minimapWrap { position: absolute; left: 14px; bottom: 14px; border: 3px solid rgba(255,255,255,.7); border-radius: 50%; overflow: hidden; box-shadow: 0 4px 18px rgba(0,0,0,.6); background: #0e2a3a; }
+  #minimap { display: block; border-radius: 50%; }
+  #speedo { position: absolute; right: 16px; bottom: 16px; text-align: right; text-shadow: 0 2px 6px #000; }
+  #speedo .num { font-size: 42px; font-weight: 900; font-style: italic; }
+  #speedo .unit { font-size: 13px; letter-spacing: 2px; color: #ffd23e; }
+  #hint { position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); font-size: 13px; color: #dff1ff; background: rgba(0,0,0,.45); padding: 6px 14px; border-radius: 8px; text-shadow: 0 1px 3px #000; }
+  #crosshair { position: absolute; left: 50%; top: 50%; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; border: 2px solid rgba(255,255,255,.9); box-shadow: 0 0 6px #000; }
+  #banner { position: absolute; top: 32%; left: 50%; transform: translateX(-50%); text-align: center; pointer-events: none; }
+  #banner .big { font-size: 56px; font-weight: 900; font-style: italic; letter-spacing: 3px; color: #ffd23e; text-shadow: 0 4px 0 #e2571e, 0 8px 24px rgba(0,0,0,.8); }
+  #banner .sub { font-size: 20px; font-weight: 700; color: #fff; text-shadow: 0 2px 8px #000; margin-top: 6px; }
+  #damage { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse at center, transparent 55%, rgba(255,0,0,.55) 100%); opacity: 0; transition: opacity .15s; }
+  #toast { position: absolute; top: 96px; left: 50%; transform: translateX(-50%); font-size: 16px; font-weight: 700; color: #fff; background: rgba(0,0,0,.55); padding: 8px 18px; border-radius: 8px; text-shadow: 0 1px 3px #000; }
+  /* ---------- pause / dead ---------- */
+  #pause, #dead { background: rgba(6,12,26,.78); }
+  #pause h1, #dead h1 { font-size: 64px; font-weight: 900; font-style: italic; letter-spacing: 4px; }
+  #dead h1 { color: #ff5a5a; text-shadow: 0 4px 0 #7a0000, 0 8px 24px #000; }
+  #pause h1 { color: #ffd23e; text-shadow: 0 4px 0 #e2571e, 0 8px 24px #000; }
+  #pause p, #dead p { margin: 14px 0 20px; font-size: 17px; color: #eaf2ff; }
+  #loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #9fe8ff; font-size: 18px; letter-spacing: 2px; background: #0b1220; z-index: 20; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="loading">LOADING SOLMAR BAY…</div>
+
+<div id="hud" class="hidden">
+  <div id="topleft">
+    <div class="bar"><div id="healthFill"></div></div>
+    <div id="cash">$0</div>
+    <div id="rank">ROOKIE</div>
+  </div>
+  <div id="stars"></div>
+  <div id="objective">
+    <div id="objTitle"></div>
+    <div id="objText"></div>
+    <div id="objDist"></div>
+  </div>
+  <div id="minimapWrap"><canvas id="minimap" width="190" height="190"></canvas></div>
+  <div id="speedo"><div class="num" id="speedNum">0</div><div class="unit">MPH · <span id="gearLabel">ON FOOT</span></div></div>
+  <div id="hint"></div>
+  <div id="crosshair" class="hidden"></div>
+  <div id="banner" class="hidden"><div class="big" id="bannerBig"></div><div class="sub" id="bannerSub"></div></div>
+  <div id="toast" class="hidden"></div>
+  <div id="damage"></div>
+</div>
+
+<div id="menu" class="overlay">
+  <h1>SOLMAR BAY</h1>
+  <h2>SUNSET STREETS</h2>
+  <p class="story">Danny Cruz came back to Solmar Bay with empty pockets and a fast right foot.
+  One courier job turned into a war with the dockside crews — and the whole city is watching.
+  Steal cars, outrun the Bay PD, finish 7 story missions and become a legend of the coast.</p>
+  <div>
+    <button class="btn" id="btnStart">▶ &nbsp;START ENGINE</button>
+    <button class="btn ghost hidden" id="btnContinue">CONTINUE — MISSION <span id="continueNum">1</span></button>
+  </div>
+  <div class="controls">
+    <b>W A S D</b> move / drive &nbsp;·&nbsp; <b>Mouse</b> look &nbsp;·&nbsp; <b>Click</b> shoot &nbsp;·&nbsp; <b>E</b> steal / exit car &nbsp;·&nbsp; <b>Shift</b> sprint &nbsp;·&nbsp; <b>Space</b> brake / jump &nbsp;·&nbsp; <b>R</b> reload &nbsp;·&nbsp; <b>Esc / P</b> pause &nbsp;·&nbsp; <b>M</b> music
+  </div>
+</div>
+
+<div id="pause" class="overlay hidden">
+  <h1>PAUSED</h1>
+  <p>Take a breath, Danny. The Bay isn't going anywhere.</p>
+  <div>
+    <button class="btn" id="btnResume">RESUME</button>
+    <button class="btn ghost" id="btnQuit">QUIT TO MENU</button>
+  </div>
+</div>
+
+<div id="dead" class="overlay hidden">
+  <h1 id="deadTitle">WASTED</h1>
+  <p id="deadText">The Bay PD scraped you off the asphalt.</p>
+  <div>
+    <button class="btn" id="btnRetry">TRY AGAIN</button>
+    <button class="btn ghost" id="btnDeadMenu">MAIN MENU</button>
+  </div>
+</div>
+
+<script type="importmap">
+{ "imports": { "three": "./vendor/three.module.min.js" } }
+</script>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
